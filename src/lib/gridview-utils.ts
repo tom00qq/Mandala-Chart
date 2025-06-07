@@ -1,6 +1,6 @@
 // 共用的網格工具函數
 
-import type { Offset } from "@/components/OffsetContainer/OffsetContainer";
+// import type { Offset } from "@/components/OffsetContainer/OffsetContainer";
 
 /**
  * 將區塊索引和卡片索引轉換為全域索引
@@ -68,7 +68,7 @@ export const isCenterCard = (cardIndex: number): boolean => {
  * @param offset 背景的偏移量
  * @returns 卡片偏移位置
  */
-export const centeredCardModal = (offset: Offset) => {
+export const centeredCardModal = (offset: { x: number; y: number }) => {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 
