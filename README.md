@@ -1,54 +1,37 @@
-# React + TypeScript + Vite
+# 九宮格計劃表 ( 🌟 開發中... )
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+又稱曼陀羅計劃表，是一種具備整體性、視覺化的目標設定方式。
+<br>
+核心概念是在九宮格中心制定一個核心目標，並向周邊展開 8 個關聯的次要目標，透過平衡發展來達成核心目標。
+<br>
 
-Currently, two official plugins are available:
+<br>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 主要功能
 
-## Expanding the ESLint configuration
+- ✏️ 自由編輯：自訂背景顏色，以及卡片拖曳交換、自訂顏色、內容編輯功能
+- 🔄 模式切換： 9 x 9 模式，進一步展開 3 x 3 模式的 ８ 張卡片為新的九宮格
+- 🏞️ 匯出圖檔：匯出 png 圖檔，保存或分享的目標
+- 📌 自動保存：localStorage 保存，下次開啟瀏覽器也不怕資料消失
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+<br>
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## 操作說明
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- 快速點擊 2 下卡片，開啟編輯視窗
+- 按住卡片拖曳，放置於其他卡片可以互換卡片位置（ \* 正中央卡片不得拖曳與交換 ）
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+<br>
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+### 💡 待開發功能清單
+
+---
+
+1. 3 x 3 模式
+2. 重置卡片
+3. 匯出圖檔
+4. 保存
+5. 切換背景色
+6. 模式切換
+7. 9 x 9 模式
+8. 畫板拖拉功能
