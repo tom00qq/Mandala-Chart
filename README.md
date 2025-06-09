@@ -6,6 +6,9 @@
 <br>
 
 <br>
+<a href="https://mandala-chart.netlify.app/" style="display: inline-block; background-color: #007bff; color: white; padding: 5px 15px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 14px;">🚀 立即體驗</a>
+
+<br>
 
 ## 主要功能
 

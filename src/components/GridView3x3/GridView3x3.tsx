@@ -88,6 +88,16 @@ export const GridView3x3 = () => {
     setModalPosition(center);
   }, [editIndex]);
 
+  useEffect(() => {
+    const handleReset = () => {
+      setCards(initialCards);
+      setEditIndex(null);
+    };
+
+    window.addEventListener("gridReset", handleReset);
+    return () => window.removeEventListener("gridReset", handleReset);
+  }, []);
+
   return (
     <div
       id="screenShot_3x3"
