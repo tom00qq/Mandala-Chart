@@ -1,0 +1,23 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+### Import with alias
+
+use alias when import sources includes in project.
+
+alias config is at : [vite.config.ts](mdc:vite.config.ts)
+
+expected result's example:
+
+```typescript
+import ComponentName from "@/components/ComponentName";
+```
+
+unexpected result's example::
+
+```typescript
+import ComponentName from "./components/ComponentName";
+```

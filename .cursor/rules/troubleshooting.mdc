@@ -1,0 +1,113 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+### TroubleShooting Rules
+
+1. summarize the trouble with template and example below
+
+template:
+
+```md
+# 問題紀錄
+
+## 基本資訊
+
+- **日期：**
+- **標籤：**
+
+## 問題描述
+
+### 現象
+
+### 環境
+
+### 重現步驟
+
+## 解決方式
+
+### 嘗試的方案
+
+### 最終解決方案
+
+### 為什麼有效
+
+## 參考資源
+
+## 備註
+```
+
+example with template:
+
+````md
+# 問題紀錄
+
+## 基本資訊
+
+- **日期：** 2024-01-15
+- **標籤：** #截圖功能 #html2canvas #CSS
+
+## 問題描述
+
+### 現象
+
+點擊截圖按鈕時發生錯誤：
+Error: Attempting to parse an unsupported color function "oklch"
+
+### 環境
+
+- html2canvas: ^1.4.1
+- Tailwind CSS: ^4.1.8
+- 瀏覽器：Chrome
+
+### 重現步驟
+
+1. 點擊截圖按鈕
+2. html2canvas 嘗試解析 DOM 樣式
+3. 遇到 Tailwind v4 生成的 oklch 顏色函數
+4. 拋出錯誤並中止截圖
+
+## 解決方式
+
+### 嘗試的方案
+
+1. ❌ 使用 onclone 替換 oklch 顏色 - 太複雜且不可靠
+2. ❌ 移除所有 Tailwind 樣式 - 會失去版面
+3. ✅ 使用 foreignObjectRendering: true - 簡單有效
+
+### 最終解決方案
+
+```javascript
+const canvas = await html2canvas(targetElement, {
+  // ... 其他設定
+  logging: false,
+  foreignObjectRendering: true, // 使用更兼容的渲染方式
+});
+```
+````
+
+### 為什麼有效
+
+- `foreignObjectRendering` 繞過 CSS 解析，直接渲染 DOM
+- 避免了 html2canvas 解析不支援的 CSS 函數
+
+## 參考資源
+
+- [html2canvas GitHub Issue](mdc:https:/github.com/niklasvh/html2canvas/issues)
+- [Tailwind CSS v4 Color Functions](mdc:https:/tailwindcss.com/docs/color-functions)
+- [MDN: oklch() function](mdc:https:/developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch)
+
+## 備註
+
+- 未來可能需要升級到支援 oklch 的截圖庫
+- 考慮使用 dom-to-image 或 html-to-image 作為替代方案
+
+```
+
+```
+
+2. check the folder "./docs/troubleshootings" is existed, if not create one else skip this step.
+
+3. create markdown file under folder: "./docs/troubleshootings", file name is realted as trouble and keep it short and clean and readable, the file content is the first step summarize you made.
