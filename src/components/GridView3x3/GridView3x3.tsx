@@ -12,7 +12,7 @@ const CARD_COUNTS = 9;
 // Cards default colors
 const CARD_COLORS = {
   main: "#f04902",
-  secondary: "#fecd5e",
+  secondary: "#ff5e19",
   tertiary: "#fed879",
 };
 
