@@ -12,8 +12,8 @@ const CARD_COUNTS = 9;
 // Cards default colors
 const CARD_COLORS = {
   main: "#f04902",
-  secondary: "#ff5e19",
-  tertiary: "#fed879",
+  secondary: "#ffa15c",
+  tertiary: "#ffcaa4",
 };
 
 // LocalStorage key
