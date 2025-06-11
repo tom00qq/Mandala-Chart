@@ -71,12 +71,17 @@ export const useScreenshot = () => {
     []
   );
 
-  const captureGridView = useCallback(() => {
-    return captureElement({
-      elementId: "screenShot_3x3",
-      filename: `mandala-chart-${new Date().toISOString().slice(0, 10)}.png`,
-    });
-  }, [captureElement]);
+  const captureGridView = useCallback(
+    (backgroundColor: string) => {
+      console.log("backgroundColor", backgroundColor);
+      return captureElement({
+        elementId: "screenShot_3x3",
+        filename: `mandala-chart-${new Date().toISOString().slice(0, 10)}.png`,
+        backgroundColor,
+      });
+    },
+    [captureElement]
+  );
 
   return {
     isCapturing,
