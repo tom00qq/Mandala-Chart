@@ -6,12 +6,7 @@ import type {
   GridSection,
 } from "@/components/GridContainer/GridContainer.types";
 
-import {
-  getGlobalIndex,
-  getLocalIndices,
-  isCenterSection,
-  isCenterCard,
-} from "@/lib/gridview-utils";
+import { getGlobalIndex, getLocalIndices } from "@/lib/gridview-utils";
 
 import OffsetContainer, {
   type Offset,
@@ -27,7 +22,7 @@ const GRID_BOUNDARY = 100;
 // Grid cards configuration
 const SECTION_COUNTS = 9;
 const CARD_COUNTS = 9;
-const CENTER_SECTION_INDEX = 4;
+//const CENTER_SECTION_INDEX = 4;
 const CENTER_CARD_INDEX = 4;
 
 // Default cards
@@ -51,24 +46,43 @@ const initialSections: GridSection[] = Array(SECTION_COUNTS)
     };
   });
 
-export const GridView9x9 = ({}) => {
+interface GridView9x9Props {
+  // TODO: 定義所需的 props
+}
+
+export const GridView9x9 = ({}: GridView9x9Props) => {
   const [sections, setSections] = useState<GridSection[]>(initialSections);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  // const [dragIndex, setDragIndex] = useState<number | null>(null); // TODO: 拖拽功能開發中
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+
+  console.log("sections", setSections);
 
   const getOffset = (offset: Offset) => {
     setOffset(offset);
   };
 
-  const handleDragStart = () => {};
+  // TODO: 實作拖拽功能
+  const handleDragStart = () => {
+    console.log("TODO: 實作拖拽開始邏輯");
+  };
 
-  const handleDrop = () => {};
+  const handleDrop = () => {
+    console.log("TODO: 實作放置邏輯");
+  };
 
-  const handleEdit = () => {};
+  // TODO: 實作編輯功能
+  const handleEdit = (index: number) => {
+    setEditIndex(index);
+    console.log("TODO: 實作編輯邏輯", index);
+  };
 
-  const handleSave = () => {};
+  // TODO: 實作儲存功能
+  const handleSave = (updatedCard: CardData) => {
+    console.log("TODO: 實作儲存邏輯", updatedCard);
+    setEditIndex(null);
+  };
 
   const handleCancel = () => {
     setEditIndex(null);
@@ -102,7 +116,7 @@ export const GridView9x9 = ({}) => {
   useEffect(() => {
     const center = centeredCardModal(offset);
     setModalPosition(center);
-  }, [editIndex]);
+  }, [editIndex, offset]);
 
   return (
     <OffsetContainer childrenSize={GRID_SIZE} onOffsetChange={getOffset}>
