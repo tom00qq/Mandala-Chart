@@ -6,7 +6,11 @@ import type {
   GridSection,
 } from "@/components/GridContainer/GridContainer.types";
 
-import { getGlobalIndex, getLocalIndices } from "@/lib/gridview-utils";
+import {
+  getGlobalIndex,
+  getLocalIndices,
+  centeredCardModal,
+} from "@/lib/gridview-utils";
 
 import OffsetContainer, {
   type Offset,
@@ -22,101 +26,363 @@ const GRID_BOUNDARY = 100;
 // Grid cards configuration
 const SECTION_COUNTS = 9;
 const CARD_COUNTS = 9;
-//const CENTER_SECTION_INDEX = 4;
+const CENTER_SECTION_INDEX = 4;
 const CENTER_CARD_INDEX = 4;
+const STORAGE_KEY = "mandala-chart-9x9-sections";
 
-// Default cards
-const initialCards: CardData[] = Array(CARD_COUNTS)
-  .fill(null)
-  .map((_, index) => ({
-    id: `9x9-card-${index}`,
-    title: index === CENTER_CARD_INDEX ? "核心目標" : `關聯目標`,
-    content: `說明...`,
-    bgColor: "#fffff",
-  }));
+// Cards default colors
+const CARD_COLORS = {
+  main: "#f04902",
+  secondary: "#ffa15c",
+  tertiary: "#ffcaa4",
+};
 
-// Initial sections
-const initialSections: GridSection[] = Array(SECTION_COUNTS)
-  .fill(null)
-  .map((_, sectionIndex) => {
-    return {
-      id: `section-${sectionIndex}`,
-      sectionIndex,
-      cards: initialCards,
-    };
-  });
+// Get initial sections with default colors
+const getInitialSections = (): GridSection[] =>
+  Array(SECTION_COUNTS)
+    .fill(null)
+    .map((_, sectionIndex) => {
+      const sectionCards = Array(CARD_COUNTS)
+        .fill(null)
+        .map((_, cardIndex) => ({
+          id: `section-${sectionIndex}-card-${cardIndex}`,
+          title:
+            cardIndex === CENTER_CARD_INDEX
+              ? "核心目標"
+              : `關聯目標${cardIndex}`,
+          content: `說明...`,
+          bgColor:
+            sectionIndex === CENTER_SECTION_INDEX
+              ? cardIndex === CENTER_CARD_INDEX
+                ? CARD_COLORS.main
+                : [1, 3, 5, 7].includes(cardIndex)
+                ? CARD_COLORS.secondary
+                : CARD_COLORS.tertiary
+              : "#ffffff",
+        }));
 
-interface GridView9x9Props {
-  // TODO: 定義所需的 props
-}
+      return {
+        id: `section-${sectionIndex}`,
+        sectionIndex,
+        cards: sectionCards,
+      };
+    });
 
-export const GridView9x9 = ({}: GridView9x9Props) => {
-  const [sections, setSections] = useState<GridSection[]>(initialSections);
+// Storage functions
+const loadSectionsFromStorage = (): GridSection[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : getInitialSections();
+  } catch {
+    return getInitialSections();
+  }
+};
+
+const saveSectionsToStorage = (sections: GridSection[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sections));
+};
+
+export const GridView9x9 = () => {
+  const [sections, setSections] = useState<GridSection[]>(
+    loadSectionsFromStorage()
+  );
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  // const [dragIndex, setDragIndex] = useState<number | null>(null); // TODO: 拖拽功能開發中
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
-
-  console.log("sections", setSections);
 
   const getOffset = (offset: Offset) => {
     setOffset(offset);
   };
 
-  // TODO: 實作拖拽功能
-  const handleDragStart = () => {
-    console.log("TODO: 實作拖拽開始邏輯");
+  const handleDragStart = (globalIndex: number) => {
+    setDragIndex(globalIndex);
   };
 
-  const handleDrop = () => {
-    console.log("TODO: 實作放置邏輯");
+  const handleDrop = (dropGlobalIndex: number) => {
+    if (dragIndex === null || dragIndex === dropGlobalIndex) {
+      setDragIndex(null);
+      return;
+    }
+
+    const fromIndices = getLocalIndices(dragIndex);
+    const toIndices = getLocalIndices(dropGlobalIndex);
+
+    setSections((prev) => {
+      const newSections = [...prev];
+
+      // 檢查是否在同一個區塊
+      if (fromIndices.sectionIndex === toIndices.sectionIndex) {
+        // 同區塊交換
+        const section = { ...newSections[fromIndices.sectionIndex] };
+        section.cards = [...section.cards];
+
+        // 直接交換兩個位置的卡片
+        [
+          section.cards[fromIndices.cardIndex],
+          section.cards[toIndices.cardIndex],
+        ] = [
+          section.cards[toIndices.cardIndex],
+          section.cards[fromIndices.cardIndex],
+        ];
+
+        newSections[fromIndices.sectionIndex] = section;
+      } else {
+        // 跨區塊交換
+        const fromSection = { ...newSections[fromIndices.sectionIndex] };
+        const toSection = { ...newSections[toIndices.sectionIndex] };
+
+        fromSection.cards = [...fromSection.cards];
+        toSection.cards = [...toSection.cards];
+
+        // 獲取要交換的兩張卡片
+        const fromCard = fromSection.cards[fromIndices.cardIndex];
+        const toCard = toSection.cards[toIndices.cardIndex];
+
+        // 執行交換
+        fromSection.cards[fromIndices.cardIndex] = toCard;
+        toSection.cards[toIndices.cardIndex] = fromCard;
+
+        // 更新 sections
+        newSections[fromIndices.sectionIndex] = fromSection;
+        newSections[toIndices.sectionIndex] = toSection;
+      }
+
+      // 檢查是否需要同步：交換涉及中央 section 的非中心卡片或周邊 section 的中心卡片
+      // 注意：由於所有中心卡片都設為不可拖拽，實際上只有中央 section 的非中心卡片交換會觸發同步
+      const needsSync =
+        (fromIndices.sectionIndex === CENTER_SECTION_INDEX &&
+          fromIndices.cardIndex !== CENTER_CARD_INDEX) ||
+        (toIndices.sectionIndex === CENTER_SECTION_INDEX &&
+          toIndices.cardIndex !== CENTER_CARD_INDEX) ||
+        (fromIndices.sectionIndex !== CENTER_SECTION_INDEX &&
+          fromIndices.cardIndex === CENTER_CARD_INDEX) ||
+        (toIndices.sectionIndex !== CENTER_SECTION_INDEX &&
+          toIndices.cardIndex === CENTER_CARD_INDEX);
+
+      if (needsSync) {
+        // 對交換後的兩個位置都執行同步
+        let syncedSections = newSections;
+
+        // 同步 from 位置
+        if (
+          fromIndices.sectionIndex === CENTER_SECTION_INDEX &&
+          fromIndices.cardIndex !== CENTER_CARD_INDEX
+        ) {
+          syncedSections = syncRelatedCards(
+            syncedSections,
+            fromIndices.sectionIndex,
+            fromIndices.cardIndex,
+            syncedSections[fromIndices.sectionIndex].cards[
+              fromIndices.cardIndex
+            ]
+          );
+        } else if (
+          fromIndices.sectionIndex !== CENTER_SECTION_INDEX &&
+          fromIndices.cardIndex === CENTER_CARD_INDEX
+        ) {
+          syncedSections = syncRelatedCards(
+            syncedSections,
+            fromIndices.sectionIndex,
+            fromIndices.cardIndex,
+            syncedSections[fromIndices.sectionIndex].cards[
+              fromIndices.cardIndex
+            ]
+          );
+        }
+
+        // 同步 to 位置
+        if (
+          toIndices.sectionIndex === CENTER_SECTION_INDEX &&
+          toIndices.cardIndex !== CENTER_CARD_INDEX
+        ) {
+          syncedSections = syncRelatedCards(
+            syncedSections,
+            toIndices.sectionIndex,
+            toIndices.cardIndex,
+            syncedSections[toIndices.sectionIndex].cards[toIndices.cardIndex]
+          );
+        } else if (
+          toIndices.sectionIndex !== CENTER_SECTION_INDEX &&
+          toIndices.cardIndex === CENTER_CARD_INDEX
+        ) {
+          syncedSections = syncRelatedCards(
+            syncedSections,
+            toIndices.sectionIndex,
+            toIndices.cardIndex,
+            syncedSections[toIndices.sectionIndex].cards[toIndices.cardIndex]
+          );
+        }
+
+        return syncedSections;
+      }
+
+      return newSections;
+    });
+
+    setDragIndex(null);
   };
 
-  // TODO: 實作編輯功能
   const handleEdit = (index: number) => {
     setEditIndex(index);
-    console.log("TODO: 實作編輯邏輯", index);
-  };
-
-  // TODO: 實作儲存功能
-  const handleSave = (updatedCard: CardData) => {
-    console.log("TODO: 實作儲存邏輯", updatedCard);
-    setEditIndex(null);
   };
 
   const handleCancel = () => {
     setEditIndex(null);
   };
 
-  // 置中 Card Modal
-  const centeredCardModal = (offset: Offset) => {
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+  // 中心區塊與周邊區塊的雙向同步邏輯
+  const syncRelatedCards = (
+    sections: GridSection[],
+    sectionIndex: number,
+    cardIndex: number,
+    updatedCard: CardData
+  ): GridSection[] => {
+    const newSections = [...sections];
 
-    // 假設 modal 的尺寸（可以根據實際需求調整）
-    const modalWidth = 520; // modal 寬度
-    const modalHeight = 576; // modal 高度
+    // 同步內容但保留原有的 id
+    const syncCardContent = (targetCard: CardData, sourceCard: CardData) => ({
+      ...targetCard,
+      title: sourceCard.title,
+      content: sourceCard.content,
+      bgColor: sourceCard.bgColor,
+    });
 
-    // 計算視窗中心點
-    const viewportCenterX = viewportWidth / 2;
-    const viewportCenterY = viewportHeight / 2;
+    // 情況 1：編輯中心 section (4) 的非中心卡片，同步到對應周邊 section 的中心卡片
+    if (
+      sectionIndex === CENTER_SECTION_INDEX &&
+      cardIndex !== CENTER_CARD_INDEX
+    ) {
+      const targetSectionIndex = cardIndex;
+      const targetCardIndex = CENTER_CARD_INDEX;
 
-    // 考慮 Canvas 偏移後的實際中心位置
-    // 由於 Canvas 有偏移，我們需要計算在當前可視區域的真正中心
-    const actualCenterX = viewportCenterX - (offset?.x || 0);
-    const actualCenterY = viewportCenterY - (offset?.y || 0);
+      newSections[targetSectionIndex] = {
+        ...newSections[targetSectionIndex],
+        cards: newSections[targetSectionIndex].cards.map((card, idx) =>
+          idx === targetCardIndex ? syncCardContent(card, updatedCard) : card
+        ),
+      };
+    }
 
-    // 計算 modal 左上角應該在的位置（讓 modal 中心對齊實際中心）
-    const modalX = actualCenterX - modalWidth / 2;
-    const modalY = actualCenterY - modalHeight / 2;
+    // 情況 2：編輯周邊 section 的中心卡片，同步到中心 section 的對應卡片
+    if (
+      sectionIndex !== CENTER_SECTION_INDEX &&
+      cardIndex === CENTER_CARD_INDEX
+    ) {
+      const targetSectionIndex = CENTER_SECTION_INDEX;
+      const targetCardIndex = sectionIndex;
 
-    return { x: modalX, y: modalY };
+      newSections[targetSectionIndex] = {
+        ...newSections[targetSectionIndex],
+        cards: newSections[targetSectionIndex].cards.map((card, idx) =>
+          idx === targetCardIndex ? syncCardContent(card, updatedCard) : card
+        ),
+      };
+    }
+
+    return newSections;
   };
+
+  const handleSave = (updatedCard: CardData, syncBgColor?: boolean) => {
+    if (editIndex === null) return;
+
+    const { sectionIndex, cardIndex } = getLocalIndices(editIndex);
+
+    setSections((prev) => {
+      // 先更新當前編輯的卡片
+      const sectionsAfterUpdate = prev.map((section, idx) => {
+        if (idx === sectionIndex) {
+          const updatedCards = [...section.cards];
+          updatedCards[cardIndex] = {
+            ...updatedCards[cardIndex],
+            ...updatedCard,
+          };
+
+          // 如果需要同步背景色
+          if (syncBgColor) {
+            updatedCards.forEach((card, index) => {
+              if (index !== CENTER_CARD_INDEX) {
+                card.bgColor = updatedCard.bgColor;
+              }
+            });
+          }
+
+          return { ...section, cards: updatedCards };
+        }
+        return section;
+      });
+
+      // 再執行雙向同步
+      return syncRelatedCards(
+        sectionsAfterUpdate,
+        sectionIndex,
+        cardIndex,
+        updatedCard
+      );
+    });
+
+    setEditIndex(null);
+  };
+
+  // 中央 section 向四周同步功能
+  const syncCenterToPeriphery = (sections: GridSection[]): GridSection[] => {
+    const newSections = [...sections];
+    const centerSection = newSections[CENTER_SECTION_INDEX];
+
+    // 同步內容但保留原有的 id
+    const syncCardContent = (targetCard: CardData, sourceCard: CardData) => ({
+      ...targetCard,
+      title: sourceCard.title,
+      content: sourceCard.content,
+      bgColor: sourceCard.bgColor,
+    });
+
+    // 將中央 section 的每張非中心卡片同步到對應周邊 section 的中心卡片
+    centerSection.cards.forEach((centerCard, cardIndex) => {
+      if (cardIndex !== CENTER_CARD_INDEX) {
+        const targetSectionIndex = cardIndex;
+        const targetCardIndex = CENTER_CARD_INDEX;
+
+        newSections[targetSectionIndex] = {
+          ...newSections[targetSectionIndex],
+          cards: newSections[targetSectionIndex].cards.map((card, idx) =>
+            idx === targetCardIndex ? syncCardContent(card, centerCard) : card
+          ),
+        };
+      }
+    });
+
+    return newSections;
+  };
+
+  useEffect(() => {
+    setSections((prev) => {
+      const synced = syncCenterToPeriphery(prev);
+      return synced;
+    });
+  }, []);
 
   useEffect(() => {
     const center = centeredCardModal(offset);
     setModalPosition(center);
   }, [editIndex, offset]);
+
+  useEffect(() => {
+    saveSectionsToStorage(sections);
+  }, [sections]);
+
+  useEffect(() => {
+    const handleReset = () => {
+      const initialSections = getInitialSections();
+      const syncedSections = syncCenterToPeriphery(initialSections);
+      setSections(syncedSections);
+      setEditIndex(null);
+      setDragIndex(null);
+    };
+
+    window.addEventListener("gridReset", handleReset);
+    return () => window.removeEventListener("gridReset", handleReset);
+  }, []);
 
   return (
     <OffsetContainer childrenSize={GRID_SIZE} onOffsetChange={getOffset}>
