@@ -6,16 +6,14 @@ import type {
   GridSection,
 } from "@/components/GridContainer/GridContainer.types";
 
-import {
-  getGlobalIndex,
-  getLocalIndices,
-  centeredCardModal,
-} from "@/lib/gridview-utils";
+import { getGlobalIndex, getLocalIndices } from "@/lib/gridview-utils";
 
 import OffsetContainer, {
   type Offset,
 } from "@/components/OffsetContainer/OffsetContainer";
 import Mask from "../Mask/Mask";
+import { useCardEditor } from "@/hooks/useCardEditor";
+import { useDragDrop } from "@/hooks/useDragDrop";
 
 const GRID_SIZE = {
   width: 2200,
@@ -87,21 +85,17 @@ export const GridView9x9 = () => {
     loadSectionsFromStorage()
   );
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const { editIndex, modalPosition, handleEdit, handleCancel, closeEditor } =
+    useCardEditor({ offset });
+  const { dragIndex, handleDragStart, resetDrag } = useDragDrop();
 
   const getOffset = (offset: Offset) => {
     setOffset(offset);
   };
 
-  const handleDragStart = (globalIndex: number) => {
-    setDragIndex(globalIndex);
-  };
-
   const handleDrop = (dropGlobalIndex: number) => {
     if (dragIndex === null || dragIndex === dropGlobalIndex) {
-      setDragIndex(null);
+      resetDrag();
       return;
     }
 
@@ -220,15 +214,7 @@ export const GridView9x9 = () => {
       return newSections;
     });
 
-    setDragIndex(null);
-  };
-
-  const handleEdit = (index: number) => {
-    setEditIndex(index);
-  };
-
-  const handleCancel = () => {
-    setEditIndex(null);
+    resetDrag();
   };
 
   // 中心區塊與周邊區塊的雙向同步邏輯
@@ -321,7 +307,7 @@ export const GridView9x9 = () => {
       );
     });
 
-    setEditIndex(null);
+    closeEditor();
   };
 
   // 中央 section 向四周同步功能
@@ -363,11 +349,6 @@ export const GridView9x9 = () => {
   }, []);
 
   useEffect(() => {
-    const center = centeredCardModal(offset);
-    setModalPosition(center);
-  }, [editIndex, offset]);
-
-  useEffect(() => {
     saveSectionsToStorage(sections);
   }, [sections]);
 
@@ -376,13 +357,13 @@ export const GridView9x9 = () => {
       const initialSections = getInitialSections();
       const syncedSections = syncCenterToPeriphery(initialSections);
       setSections(syncedSections);
-      setEditIndex(null);
-      setDragIndex(null);
+      closeEditor();
+      resetDrag();
     };
 
     window.addEventListener("gridReset", handleReset);
     return () => window.removeEventListener("gridReset", handleReset);
-  }, []);
+  }, [closeEditor, resetDrag]);
 
   return (
     <OffsetContainer childrenSize={GRID_SIZE} onOffsetChange={getOffset}>

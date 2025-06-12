@@ -3,7 +3,8 @@ import { Card } from "@/components/Card/Card";
 import type { CardData } from "@/components/GridContainer/GridContainer.types";
 import CardModal from "@/components/CardModal/CardModal";
 import Mask from "@/components/Mask/Mask";
-import { centeredCardModal } from "@/lib/gridview-utils";
+import { useCardEditor } from "@/hooks/useCardEditor";
+import { useDragDrop } from "@/hooks/useDragDrop";
 
 // Grid cards configuration
 const CENTER_CARD_INDEX = 4;
@@ -55,17 +56,13 @@ const saveCardsToStorage = (cards: CardData[]) => {
 
 export const GridView3x3 = () => {
   const [cards, setCards] = useState<CardData[]>(loadCardsFromStorage);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const { editIndex, modalPosition, handleEdit, handleCancel, closeEditor } =
+    useCardEditor();
+  const { dragIndex, handleDragStart, resetDrag } = useDragDrop();
 
   useEffect(() => {
     saveCardsToStorage(cards);
   }, [cards]);
-
-  const handleDragStart = (index: number) => {
-    setDragIndex(index);
-  };
 
   const handleDrop = (dropIndex: number) => {
     if (dragIndex !== null && dragIndex !== dropIndex) {
@@ -78,11 +75,7 @@ export const GridView3x3 = () => {
 
       setCards(updatedCard);
     }
-    setDragIndex(null);
-  };
-
-  const handleEdit = (index: number) => {
-    setEditIndex(index);
+    resetDrag();
   };
 
   const handleSave = (updatedCard: CardData, syncBgColor: boolean) => {
@@ -101,29 +94,20 @@ export const GridView3x3 = () => {
       }
 
       setCards(updatedCards);
-      setEditIndex(null);
+      closeEditor();
     }
   };
-
-  const handleCancel = () => {
-    setEditIndex(null);
-  };
-
-  useEffect(() => {
-    const center = centeredCardModal({ x: 0, y: 0 });
-    setModalPosition(center);
-  }, [editIndex]);
 
   useEffect(() => {
     const handleReset = () => {
       const initialCards = getInitialCards();
       setCards(initialCards);
-      setEditIndex(null);
+      closeEditor();
     };
 
     window.addEventListener("gridReset", handleReset);
     return () => window.removeEventListener("gridReset", handleReset);
-  }, []);
+  }, [closeEditor]);
 
   return (
     <div
