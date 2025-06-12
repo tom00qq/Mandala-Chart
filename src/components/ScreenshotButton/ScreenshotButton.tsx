@@ -4,18 +4,22 @@ interface ScreenshotButtonProps {
   className?: string;
   children?: React.ReactNode;
   backgroundColor?: string;
+  elementId: string;
+  filename?: string;
 }
 
 const ScreenshotButton = ({
   className = "",
   children = "下載",
   backgroundColor = "#ffffff",
+  elementId,
+  filename,
 }: ScreenshotButtonProps) => {
   const { isCapturing, captureGridView } = useScreenshot();
 
   const handleScreenshot = async () => {
     try {
-      await captureGridView(backgroundColor);
+      await captureGridView(backgroundColor, elementId, filename);
     } catch (error) {
       console.error("截圖失敗:", error);
       alert("截圖失敗，請重試");
