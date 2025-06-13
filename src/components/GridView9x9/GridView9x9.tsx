@@ -88,7 +88,6 @@ export const GridView9x9 = () => {
         const section = { ...newSections[fromIndices.sectionIndex] };
         section.cards = [...section.cards];
 
-        // 直接交換兩個位置的卡片
         [
           section.cards[fromIndices.cardIndex],
           section.cards[toIndices.cardIndex],
@@ -106,54 +105,27 @@ export const GridView9x9 = () => {
         fromSection.cards = [...fromSection.cards];
         toSection.cards = [...toSection.cards];
 
-        // 獲取要交換的兩張卡片
         const fromCard = fromSection.cards[fromIndices.cardIndex];
         const toCard = toSection.cards[toIndices.cardIndex];
 
-        // 執行交換
         fromSection.cards[fromIndices.cardIndex] = toCard;
         toSection.cards[toIndices.cardIndex] = fromCard;
 
-        // 更新 sections
         newSections[fromIndices.sectionIndex] = fromSection;
         newSections[toIndices.sectionIndex] = toSection;
       }
 
       // 檢查是否需要同步：交換涉及中央 section 的非中心卡片或周邊 section 的中心卡片
-      // 注意：由於所有中心卡片都設為不可拖拽，實際上只有中央 section 的非中心卡片交換會觸發同步
       const needsSync =
-        (fromIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
-          fromIndices.cardIndex !== GRID_CONFIG.cards.centerIndex) ||
-        (toIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
-          toIndices.cardIndex !== GRID_CONFIG.cards.centerIndex) ||
-        (fromIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
-          fromIndices.cardIndex === GRID_CONFIG.cards.centerIndex) ||
-        (toIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
-          toIndices.cardIndex === GRID_CONFIG.cards.centerIndex);
+        fromIndices.sectionIndex === GRID_CONFIG.sections.centerIndex ||
+        toIndices.sectionIndex === GRID_CONFIG.sections.centerIndex;
 
       if (needsSync) {
         // 對交換後的兩個位置都執行同步
         let syncedSections = newSections;
 
         // 同步 from 位置
-        if (
-          fromIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
-          fromIndices.cardIndex !== GRID_CONFIG.cards.centerIndex
-        ) {
-          syncedSections = syncRelatedCards(
-            syncedSections,
-            fromIndices.sectionIndex,
-            fromIndices.cardIndex,
-            syncedSections[fromIndices.sectionIndex].cards[
-              fromIndices.cardIndex
-            ],
-            GRID_CONFIG.sections.centerIndex,
-            GRID_CONFIG.cards.centerIndex
-          );
-        } else if (
-          fromIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
-          fromIndices.cardIndex === GRID_CONFIG.cards.centerIndex
-        ) {
+        if (fromIndices.sectionIndex === GRID_CONFIG.sections.centerIndex) {
           syncedSections = syncRelatedCards(
             syncedSections,
             fromIndices.sectionIndex,
@@ -165,24 +137,8 @@ export const GridView9x9 = () => {
             GRID_CONFIG.cards.centerIndex
           );
         }
-
         // 同步 to 位置
-        if (
-          toIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
-          toIndices.cardIndex !== GRID_CONFIG.cards.centerIndex
-        ) {
-          syncedSections = syncRelatedCards(
-            syncedSections,
-            toIndices.sectionIndex,
-            toIndices.cardIndex,
-            syncedSections[toIndices.sectionIndex].cards[toIndices.cardIndex],
-            GRID_CONFIG.sections.centerIndex,
-            GRID_CONFIG.cards.centerIndex
-          );
-        } else if (
-          toIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
-          toIndices.cardIndex === GRID_CONFIG.cards.centerIndex
-        ) {
+        if (toIndices.sectionIndex === GRID_CONFIG.sections.centerIndex) {
           syncedSections = syncRelatedCards(
             syncedSections,
             toIndices.sectionIndex,
@@ -192,7 +148,6 @@ export const GridView9x9 = () => {
             GRID_CONFIG.cards.centerIndex
           );
         }
-
         return syncedSections;
       }
 
@@ -208,30 +163,22 @@ export const GridView9x9 = () => {
     const { sectionIndex, cardIndex } = getLocalIndices(editIndex);
 
     setSections((prev) => {
-      // 先更新當前編輯的卡片
       const sectionsAfterUpdate = prev.map((section, idx) => {
-        if (idx === sectionIndex) {
-          const updatedCards = [...section.cards];
-          updatedCards[cardIndex] = {
-            ...updatedCards[cardIndex],
-            ...updatedCard,
-          };
+        if (idx !== sectionIndex) return section;
 
-          // 如果需要同步背景色
-          if (syncBgColor) {
-            updatedCards.forEach((card, index) => {
-              if (index !== GRID_CONFIG.cards.centerIndex) {
-                card.bgColor = updatedCard.bgColor;
-              }
-            });
+        const updatedCards = section.cards.map((card, index) => {
+          if (index === cardIndex) {
+            return { ...card, ...updatedCard };
           }
+          if (syncBgColor && index !== GRID_CONFIG.cards.centerIndex) {
+            return { ...card, bgColor: updatedCard.bgColor };
+          }
+          return card;
+        });
 
-          return { ...section, cards: updatedCards };
-        }
-        return section;
+        return { ...section, cards: updatedCards };
       });
 
-      // 再執行雙向同步
       return syncRelatedCards(
         sectionsAfterUpdate,
         sectionIndex,
