@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { centeredCardModal } from "@/lib/gridview-utils";
+import { centeredCardModal } from "@/utils/grid/gridUtils";
 
 interface UseCardEditorProps {
   offset?: { x: number; y: number };

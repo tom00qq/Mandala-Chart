@@ -1,89 +1,66 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/Card/Card";
-import CardModal from "@/components/CardModal/CardModal";
 import type {
   CardData,
   GridSection,
 } from "@/components/GridContainer/GridContainer.types";
-
-import { getGlobalIndex, getLocalIndices } from "@/lib/gridview-utils";
+import CardModal from "@/components/CardModal/CardModal";
+import Mask from "@/components/Mask/Mask";
+import { useCardEditor } from "@/hooks/useCardEditor";
+import { useDragDrop } from "@/hooks/useDragDrop";
+import {
+  loadSectionsFromStorage,
+  saveSectionsToStorage,
+  getInitialSections,
+  syncRelatedCards,
+  syncCenterToPeriphery,
+  getGlobalIndex,
+  getLocalIndices,
+} from "@/utils/grid/gridUtils";
 
 import OffsetContainer, {
   type Offset,
 } from "@/components/OffsetContainer/OffsetContainer";
-import Mask from "../Mask/Mask";
-import { useCardEditor } from "@/hooks/useCardEditor";
-import { useDragDrop } from "@/hooks/useDragDrop";
 
-const GRID_SIZE = {
-  width: 2200,
-  height: 2200,
-};
-const GRID_BOUNDARY = 100;
-
-// Grid cards configuration
-const SECTION_COUNTS = 9;
-const CARD_COUNTS = 9;
-const CENTER_SECTION_INDEX = 4;
-const CENTER_CARD_INDEX = 4;
-const STORAGE_KEY = "mandala-chart-9x9-sections";
-
-// Cards default colors
-const CARD_COLORS = {
-  main: "#f04902",
-  secondary: "#ffa15c",
-  tertiary: "#ffcaa4",
-};
-
-// Get initial sections with default colors
-const getInitialSections = (): GridSection[] =>
-  Array(SECTION_COUNTS)
-    .fill(null)
-    .map((_, sectionIndex) => {
-      const sectionCards = Array(CARD_COUNTS)
-        .fill(null)
-        .map((_, cardIndex) => ({
-          id: `section-${sectionIndex}-card-${cardIndex}`,
-          title:
-            cardIndex === CENTER_CARD_INDEX
-              ? "核心目標"
-              : `關聯目標${cardIndex}`,
-          content: `說明...`,
-          bgColor:
-            sectionIndex === CENTER_SECTION_INDEX
-              ? cardIndex === CENTER_CARD_INDEX
-                ? CARD_COLORS.main
-                : [1, 3, 5, 7].includes(cardIndex)
-                ? CARD_COLORS.secondary
-                : CARD_COLORS.tertiary
-              : "#ffffff",
-        }));
-
-      return {
-        id: `section-${sectionIndex}`,
-        sectionIndex,
-        cards: sectionCards,
-      };
-    });
-
-// Storage functions
-const loadSectionsFromStorage = (): GridSection[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : getInitialSections();
-  } catch {
-    return getInitialSections();
-  }
-};
-
-const saveSectionsToStorage = (sections: GridSection[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sections));
-};
+const GRID_CONFIG = {
+  grid: {
+    size: {
+      width: 2200,
+      height: 2200,
+    },
+    boundary: 100,
+  },
+  sections: {
+    total: 9,
+    centerIndex: 4,
+  },
+  cards: {
+    total: 9,
+    centerIndex: 4,
+  },
+  colors: {
+    main: "#f04902",
+    secondary: "#ffa15c",
+    tertiary: "#ffcaa4",
+  },
+  storage: {
+    key: "mandala-chart-9x9-sections",
+  },
+} as const;
 
 export const GridView9x9 = () => {
-  const [sections, setSections] = useState<GridSection[]>(
-    loadSectionsFromStorage()
-  );
+  const [sections, setSections] = useState<GridSection[]>(() => {
+    const savedSections = loadSectionsFromStorage(GRID_CONFIG.storage.key);
+    return savedSections.length > 0
+      ? savedSections
+      : getInitialSections(
+          GRID_CONFIG.sections.total,
+          GRID_CONFIG.cards.total,
+          GRID_CONFIG.sections.centerIndex,
+          GRID_CONFIG.cards.centerIndex,
+          GRID_CONFIG.colors
+        );
+  });
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const { editIndex, modalPosition, handleEdit, handleCancel, closeEditor } =
     useCardEditor({ offset });
@@ -145,14 +122,14 @@ export const GridView9x9 = () => {
       // 檢查是否需要同步：交換涉及中央 section 的非中心卡片或周邊 section 的中心卡片
       // 注意：由於所有中心卡片都設為不可拖拽，實際上只有中央 section 的非中心卡片交換會觸發同步
       const needsSync =
-        (fromIndices.sectionIndex === CENTER_SECTION_INDEX &&
-          fromIndices.cardIndex !== CENTER_CARD_INDEX) ||
-        (toIndices.sectionIndex === CENTER_SECTION_INDEX &&
-          toIndices.cardIndex !== CENTER_CARD_INDEX) ||
-        (fromIndices.sectionIndex !== CENTER_SECTION_INDEX &&
-          fromIndices.cardIndex === CENTER_CARD_INDEX) ||
-        (toIndices.sectionIndex !== CENTER_SECTION_INDEX &&
-          toIndices.cardIndex === CENTER_CARD_INDEX);
+        (fromIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
+          fromIndices.cardIndex !== GRID_CONFIG.cards.centerIndex) ||
+        (toIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
+          toIndices.cardIndex !== GRID_CONFIG.cards.centerIndex) ||
+        (fromIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
+          fromIndices.cardIndex === GRID_CONFIG.cards.centerIndex) ||
+        (toIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
+          toIndices.cardIndex === GRID_CONFIG.cards.centerIndex);
 
       if (needsSync) {
         // 對交換後的兩個位置都執行同步
@@ -160,8 +137,8 @@ export const GridView9x9 = () => {
 
         // 同步 from 位置
         if (
-          fromIndices.sectionIndex === CENTER_SECTION_INDEX &&
-          fromIndices.cardIndex !== CENTER_CARD_INDEX
+          fromIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
+          fromIndices.cardIndex !== GRID_CONFIG.cards.centerIndex
         ) {
           syncedSections = syncRelatedCards(
             syncedSections,
@@ -169,11 +146,13 @@ export const GridView9x9 = () => {
             fromIndices.cardIndex,
             syncedSections[fromIndices.sectionIndex].cards[
               fromIndices.cardIndex
-            ]
+            ],
+            GRID_CONFIG.sections.centerIndex,
+            GRID_CONFIG.cards.centerIndex
           );
         } else if (
-          fromIndices.sectionIndex !== CENTER_SECTION_INDEX &&
-          fromIndices.cardIndex === CENTER_CARD_INDEX
+          fromIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
+          fromIndices.cardIndex === GRID_CONFIG.cards.centerIndex
         ) {
           syncedSections = syncRelatedCards(
             syncedSections,
@@ -181,30 +160,36 @@ export const GridView9x9 = () => {
             fromIndices.cardIndex,
             syncedSections[fromIndices.sectionIndex].cards[
               fromIndices.cardIndex
-            ]
+            ],
+            GRID_CONFIG.sections.centerIndex,
+            GRID_CONFIG.cards.centerIndex
           );
         }
 
         // 同步 to 位置
         if (
-          toIndices.sectionIndex === CENTER_SECTION_INDEX &&
-          toIndices.cardIndex !== CENTER_CARD_INDEX
+          toIndices.sectionIndex === GRID_CONFIG.sections.centerIndex &&
+          toIndices.cardIndex !== GRID_CONFIG.cards.centerIndex
         ) {
           syncedSections = syncRelatedCards(
             syncedSections,
             toIndices.sectionIndex,
             toIndices.cardIndex,
-            syncedSections[toIndices.sectionIndex].cards[toIndices.cardIndex]
+            syncedSections[toIndices.sectionIndex].cards[toIndices.cardIndex],
+            GRID_CONFIG.sections.centerIndex,
+            GRID_CONFIG.cards.centerIndex
           );
         } else if (
-          toIndices.sectionIndex !== CENTER_SECTION_INDEX &&
-          toIndices.cardIndex === CENTER_CARD_INDEX
+          toIndices.sectionIndex !== GRID_CONFIG.sections.centerIndex &&
+          toIndices.cardIndex === GRID_CONFIG.cards.centerIndex
         ) {
           syncedSections = syncRelatedCards(
             syncedSections,
             toIndices.sectionIndex,
             toIndices.cardIndex,
-            syncedSections[toIndices.sectionIndex].cards[toIndices.cardIndex]
+            syncedSections[toIndices.sectionIndex].cards[toIndices.cardIndex],
+            GRID_CONFIG.sections.centerIndex,
+            GRID_CONFIG.cards.centerIndex
           );
         }
 
@@ -215,58 +200,6 @@ export const GridView9x9 = () => {
     });
 
     resetDrag();
-  };
-
-  // 中心區塊與周邊區塊的雙向同步邏輯
-  const syncRelatedCards = (
-    sections: GridSection[],
-    sectionIndex: number,
-    cardIndex: number,
-    updatedCard: CardData
-  ): GridSection[] => {
-    const newSections = [...sections];
-
-    // 同步內容但保留原有的 id
-    const syncCardContent = (targetCard: CardData, sourceCard: CardData) => ({
-      ...targetCard,
-      title: sourceCard.title,
-      content: sourceCard.content,
-      bgColor: sourceCard.bgColor,
-    });
-
-    // 情況 1：編輯中心 section (4) 的非中心卡片，同步到對應周邊 section 的中心卡片
-    if (
-      sectionIndex === CENTER_SECTION_INDEX &&
-      cardIndex !== CENTER_CARD_INDEX
-    ) {
-      const targetSectionIndex = cardIndex;
-      const targetCardIndex = CENTER_CARD_INDEX;
-
-      newSections[targetSectionIndex] = {
-        ...newSections[targetSectionIndex],
-        cards: newSections[targetSectionIndex].cards.map((card, idx) =>
-          idx === targetCardIndex ? syncCardContent(card, updatedCard) : card
-        ),
-      };
-    }
-
-    // 情況 2：編輯周邊 section 的中心卡片，同步到中心 section 的對應卡片
-    if (
-      sectionIndex !== CENTER_SECTION_INDEX &&
-      cardIndex === CENTER_CARD_INDEX
-    ) {
-      const targetSectionIndex = CENTER_SECTION_INDEX;
-      const targetCardIndex = sectionIndex;
-
-      newSections[targetSectionIndex] = {
-        ...newSections[targetSectionIndex],
-        cards: newSections[targetSectionIndex].cards.map((card, idx) =>
-          idx === targetCardIndex ? syncCardContent(card, updatedCard) : card
-        ),
-      };
-    }
-
-    return newSections;
   };
 
   const handleSave = (updatedCard: CardData, syncBgColor?: boolean) => {
@@ -287,7 +220,7 @@ export const GridView9x9 = () => {
           // 如果需要同步背景色
           if (syncBgColor) {
             updatedCards.forEach((card, index) => {
-              if (index !== CENTER_CARD_INDEX) {
+              if (index !== GRID_CONFIG.cards.centerIndex) {
                 card.bgColor = updatedCard.bgColor;
               }
             });
@@ -303,59 +236,43 @@ export const GridView9x9 = () => {
         sectionsAfterUpdate,
         sectionIndex,
         cardIndex,
-        updatedCard
+        updatedCard,
+        GRID_CONFIG.sections.centerIndex,
+        GRID_CONFIG.cards.centerIndex
       );
     });
 
     closeEditor();
   };
 
-  // 中央 section 向四周同步功能
-  const syncCenterToPeriphery = (sections: GridSection[]): GridSection[] => {
-    const newSections = [...sections];
-    const centerSection = newSections[CENTER_SECTION_INDEX];
-
-    // 同步內容但保留原有的 id
-    const syncCardContent = (targetCard: CardData, sourceCard: CardData) => ({
-      ...targetCard,
-      title: sourceCard.title,
-      content: sourceCard.content,
-      bgColor: sourceCard.bgColor,
-    });
-
-    // 將中央 section 的每張非中心卡片同步到對應周邊 section 的中心卡片
-    centerSection.cards.forEach((centerCard, cardIndex) => {
-      if (cardIndex !== CENTER_CARD_INDEX) {
-        const targetSectionIndex = cardIndex;
-        const targetCardIndex = CENTER_CARD_INDEX;
-
-        newSections[targetSectionIndex] = {
-          ...newSections[targetSectionIndex],
-          cards: newSections[targetSectionIndex].cards.map((card, idx) =>
-            idx === targetCardIndex ? syncCardContent(card, centerCard) : card
-          ),
-        };
-      }
-    });
-
-    return newSections;
-  };
-
   useEffect(() => {
     setSections((prev) => {
-      const synced = syncCenterToPeriphery(prev);
-      return synced;
+      return syncCenterToPeriphery(
+        prev,
+        GRID_CONFIG.sections.centerIndex,
+        GRID_CONFIG.cards.centerIndex
+      );
     });
   }, []);
 
   useEffect(() => {
-    saveSectionsToStorage(sections);
+    saveSectionsToStorage(sections, GRID_CONFIG.storage.key);
   }, [sections]);
 
   useEffect(() => {
     const handleReset = () => {
-      const initialSections = getInitialSections();
-      const syncedSections = syncCenterToPeriphery(initialSections);
+      const initialSections = getInitialSections(
+        GRID_CONFIG.sections.total,
+        GRID_CONFIG.cards.total,
+        GRID_CONFIG.sections.centerIndex,
+        GRID_CONFIG.cards.centerIndex,
+        GRID_CONFIG.colors
+      );
+      const syncedSections = syncCenterToPeriphery(
+        initialSections,
+        GRID_CONFIG.sections.centerIndex,
+        GRID_CONFIG.cards.centerIndex
+      );
       setSections(syncedSections);
       closeEditor();
       resetDrag();
@@ -366,13 +283,16 @@ export const GridView9x9 = () => {
   }, [closeEditor, resetDrag]);
 
   return (
-    <OffsetContainer childrenSize={GRID_SIZE} onOffsetChange={getOffset}>
+    <OffsetContainer
+      childrenSize={GRID_CONFIG.grid.size}
+      onOffsetChange={getOffset}
+    >
       <div
         id="screenShot_9x9"
         className="grid grid-cols-3 gap-6 mx-auto"
         style={{
-          width: `${GRID_SIZE.width}px`,
-          height: `${GRID_SIZE.height}px`,
+          width: `${GRID_CONFIG.grid.size.width}px`,
+          height: `${GRID_CONFIG.grid.size.height}px`,
         }}
       >
         {sections.map((section) => (
@@ -389,7 +309,9 @@ export const GridView9x9 = () => {
                   card={card}
                   index={globalIndex}
                   isEditable={true}
-                  isDraggable={cardIndex === CENTER_CARD_INDEX ? false : true}
+                  isDraggable={
+                    cardIndex === GRID_CONFIG.cards.centerIndex ? false : true
+                  }
                   onDragStart={handleDragStart}
                   onDrop={handleDrop}
                   onEdit={handleEdit}
@@ -403,10 +325,10 @@ export const GridView9x9 = () => {
           <>
             <Mask
               position={{
-                top: `-${GRID_BOUNDARY}px`,
-                left: `-${GRID_BOUNDARY}px`,
-                bottom: `-${GRID_BOUNDARY}px`,
-                right: `-${GRID_BOUNDARY}px`,
+                top: `-${GRID_CONFIG.grid.boundary}px`,
+                left: `-${GRID_CONFIG.grid.boundary}px`,
+                bottom: `-${GRID_CONFIG.grid.boundary}px`,
+                right: `-${GRID_CONFIG.grid.boundary}px`,
               }}
             />
             <div
