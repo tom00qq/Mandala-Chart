@@ -64,7 +64,17 @@ export const Card: React.FC<CardProps> = ({
       </h3>
 
       <div className="flex-1 overflow-hidden mt-1">
-        <div className="h-full overflow-auto">
+        <div
+          className="h-full overflow-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full"
+          style={
+            {
+              "--scrollbar-bg": card.bgColor || "#ffffff",
+              "--scrollbar-thumb": card.bgColor
+                ? `${card.bgColor}99`
+                : "#e5e7eb",
+            } as React.CSSProperties
+          }
+        >
           <Editor content={card.content} viewOnly={true} />
         </div>
       </div>

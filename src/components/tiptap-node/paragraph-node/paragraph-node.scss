@@ -34,7 +34,7 @@
     font-size: 1rem;
     line-height: 1.6;
     font-weight: normal;
-    margin-top: 20px;
+    margin-top: 0px;
   }
 
   // Selection styles
@@ -285,9 +285,7 @@
 .tiptap.ProseMirror {
   // Base styles for inline threads
   .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--inline {
-    transition:
-      color 0.2s ease-in-out,
-      background-color 0.2s ease-in-out;
+    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
     color: var(--thread-text);
     border-bottom: 2px dashed var(--tt-color-yellow-base);
     font-weight: 600;
