@@ -248,35 +248,21 @@ export const getLocalIndices = (
 };
 
 /**
- * 檢查是否為中央區塊
- * @param sectionIndex 區塊索引
- * @returns 是否為中央區塊
+ * 計算居中的卡片模態框位置
+ * @param offset Canvas 的偏移量
+ * @param modalSize 模態框的尺寸
+ * @returns 模態框的位置座標
  */
-export const isCenterSection = (sectionIndex: number): boolean => {
-  return sectionIndex === 4;
-};
-
-/**
- * 檢查是否為區塊內的中央卡片
- * @param cardIndex 卡片索引
- * @returns 是否為中央卡片
- */
-export const isCenterCard = (cardIndex: number): boolean => {
-  return cardIndex === 4;
-};
-
-/**
- * 置中 Card Modal
- * @param offset 背景的偏移量
- * @returns 卡片偏移位置
- */
-export const centeredCardModal = (offset: { x: number; y: number }) => {
+export const centeredCardModal = (
+  offset: { x: number; y: number },
+  modalSize: { width: number; height: number }
+) => {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 
-  // 假設 modal 的尺寸（可以根據實際需求調整）
-  const modalWidth = 520; // modal 寬度
-  const modalHeight = 576; // modal 高度
+  // 使用傳入的 modalSize
+  const modalWidth = modalSize.width;
+  const modalHeight = modalSize.height;
 
   // 計算視窗中心點
   const viewportCenterX = viewportWidth / 2;

@@ -41,10 +41,6 @@ export const GridView3x3 = () => {
     useCardEditor();
   const { dragIndex, handleDragStart, resetDrag } = useDragDrop();
 
-  useEffect(() => {
-    saveCardsToStorage(cards, GRID_CONFIG.storage.key);
-  }, [cards]);
-
   const handleDrop = (dropIndex: number) => {
     if (dragIndex !== null && dragIndex !== dropIndex) {
       const updatedCard = [...cards];
@@ -80,6 +76,10 @@ export const GridView3x3 = () => {
       closeEditor();
     }
   };
+
+  useEffect(() => {
+    saveCardsToStorage(cards, GRID_CONFIG.storage.key);
+  }, [cards]);
 
   useEffect(() => {
     const handleReset = () => {
